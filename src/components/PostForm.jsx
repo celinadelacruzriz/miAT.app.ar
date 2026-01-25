@@ -1,172 +1,239 @@
 import { useState } from "react";
-import { supabase } from "../lib/supabase";
 import { createPostDraft } from "../services/posts.service";
-import { CAFECITO_URL } from "../config/payments";
+
+const ZONAS = [
+  "Abasto",
+  "Altos de San Lorenzo",
+  "Barrio Hipódromo",
+  "Barrio Norte",
+  "Casco Urbano (Centro)",
+  "City Bell",
+  "El Mondongo",
+  "Gonnet",
+  "Los Hornos",
+  "Melchor Romero",
+  "Meridiano V",
+  "Olmos",
+  "Ringuelet",
+  "Tolosa",
+  "Villa Elvira",
+  "Villa Elisa",
+];
+
+const DIAGNOSTICOS = [
+  "ASPERGER",
+  "RETRASO MADURATIVO",
+  "SINDROME DE DOWN",
+  "TEA",
+  "TDAH",
+  "TGD",
+  "OTROS",
+];
+const DAYS = [
+  "Lunes",
+  "Martes",
+  "Miércoles",
+  "Jueves",
+  "Viernes",
+  "Sábado",
+  "Domingo",
+];
+
+const SHIFTS = ["Mañana", "Tarde", "Noche"];
 
 export default function PostForm({ role }) {
-  const [form, setForm] = useState({
-    zone: "",
-    age_range: "",
-    diagnosis: [],
-    schedule: [],
-    experience_years: "",
-    specialty: "",
-    intent: "",
-    modalidad: "",
-    celular: "",
-  });
+  const [zone, setZone] = useState("");
+  const [schedule, setSchedule] = useState([]);
+  const [day, setDay] = useState("");
+  const [shift, setShift] = useState("");
+  const [diagnosis, setDiagnosis] = useState([]);
+  const [ageRange, setAgeRange] = useState("");
+  const [experienceYears, setExperienceYears] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [intent, setIntent] = useState("");
+  const [celular, setCelular] = useState("");
+  const [email, setEmail] = useState("");
+  const [obraSocial, setObraSocial] = useState("");
+ const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [savedPost, setSavedPost] = useState(null); // guardamos post completo con id
+ function addSchedule() {
+  if (!day || !shift) return;
 
-  function updateField(name, value) {
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const value = `${day} ${shift}`;
+
+  setSchedule((prev) =>
+    prev.includes(value) ? prev : [...prev, value]
+  );
+
+  setDay("");
+  setShift("");
+}
+
+function removeSchedule(value) {
+  setSchedule((prev) => prev.filter((s) => s !== value));
+}
+
+
+function toggleDiagnosis(value) {
+    setDiagnosis((prev) =>
+      prev.includes(value)
+        ? prev.filter((d) => d !== value)
+        : [...prev, value]
+    );
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
-    const user = supabase.auth.user();
-    if (!user) {
-      setError("Debés iniciar sesión para crear una publicación");
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await createPostDraft({
+    const { error } = await createPostDraft({
       role,
-      ...form,
-      experience_years: role === "at" ? Number(form.experience_years) : null,
+      zone,
+      schedule,   
+      diagnosis,
+      age_range: ageRange,
+      experience_years: experienceYears,
+      specialty,
+      intent,
+      celular,
+      modalidad: obraSocial,
+      email,
     });
 
     if (error) {
-      setError(error.message || "No se pudo guardar la publicación");
-      setLoading(false);
-      return;
+      console.error("Error guardando publicación:", error);
+      alert("Error al guardar publicación");
+    } else {
+      alert("Publicación guardada. Pendiente de pago.");
     }
-
-    setSavedPost(data); // guardamos el post creado con su id
-    setLoading(false);
-  }
-
-  // función para abrir Cafecito + página de éxito que activa el post
-  function handlePay(postId) {
-    const cafecitoUrl = `${CAFECITO_URL}?ref=post_${postId}`;
-    const successUrl = `${window.location.origin}/payment-success?postId=${postId}`;
-
-    // Abrimos Cafecito en otra pestaña
-    window.open(cafecitoUrl, "_blank");
-
-    // Abrimos la página de éxito en otra pestaña
-    setTimeout(() => {
-      window.open(successUrl, "_blank");
-    }, 3000); // 3 segundos para simular que el usuario hizo el pago
-  }
-
-  if (savedPost) {
-    return (
-      <div>
-        <p>Publicación guardada.</p>
-        <p>Para activarla debés realizar el pago (30 días).</p>
-
-        <button
-          onClick={() => handlePay(savedPost.id)}
-          style={{ marginTop: 12 }}
-        >
-          Pagar publicación
-        </button>
-
-        <p style={{ marginTop: 12 }}>
-          Luego del pago se activará automáticamente la publicación.
-        </p>
-      </div>
-    );
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <p>
-        Rol: <strong>{role}</strong>
-      </p>
+      <h3>Nueva publicación</h3>
 
-      <input
-        placeholder="Zona"
-        value={form.zone}
-        onChange={(e) => updateField("zone", e.target.value)}
-        required
-      />
+      {/* ZONA */}
+      <label>Zona</label>
+      <select value={zone} onChange={(e) => setZone(e.target.value)} required>
+        <option value="">Seleccionar zona</option>
+        {ZONAS.map((z) => (
+          <option key={z} value={z}>
+            {z}
+          </option>
+        ))}
+      </select>
 
-      {role === "parent" && (
+      {/* DISPONIBILIDAD */}
+<hr />
+
+
+<label>Disponibilidad</label>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <select value={day} onChange={(e) => setDay(e.target.value)}>
+          <option value="">Día</option>
+          {DAYS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+
+        <select value={shift} onChange={(e) => setShift(e.target.value)}>
+          <option value="">Horario</option>
+          {SHIFTS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+
+        <button type="button" onClick={addSchedule}>
+          Agregar
+        </button>
+      </div>
+
+    <ul>
+      
+  {schedule.map((s) => (
+    <li key={s}>
+      {s}{" "}
+      <button type="button" onClick={() => removeSchedule(s)}>
+        ✕
+      </button>
+    </li>
+  ))}
+</ul>
+<hr />
+      {/* CAMPOS FAMILIA */}
+      
+      {role === "family" && (
         <>
-          <input
-            placeholder="Edad del niño"
-            value={form.age_range}
-            onChange={(e) => updateField("age_range", e.target.value)}
-          />
+          <label>Diagnóstico</label>
+          {DIAGNOSTICOS.map((d) => (
+            <label key={d}>
+              <input
+                type="checkbox"
+                checked={diagnosis.includes(d)}
+                onChange={() => toggleDiagnosis(d)}
+              />
+              {d}
+            </label>
+          ))}
 
+          <label>Edad del niño/a</label>
           <input
-            placeholder="Diagnóstico (separado por coma)"
-            onChange={(e) =>
-              updateField(
-                "diagnosis",
-                e.target.value.split(",").map((d) => d.trim()),
-              )
-            }
+            type="text"
+            value={ageRange}
+            onChange={(e) => setAgeRange(e.target.value)}
           />
         </>
       )}
 
+      {/* CAMPOS PROFESIONALES */}
       {role === "at" && (
         <>
+          <label>Especialidad</label>
           <input
-            type="number"
-            placeholder="Años de experiencia"
-            value={form.experience_years}
-            onChange={(e) => updateField("experience_years", e.target.value)}
+            type="text"
+            value={specialty}
+            onChange={(e) => setSpecialty(e.target.value)}
           />
 
+          <label>Años de experiencia</label>
           <input
-            placeholder="Especialidad"
-            value={form.specialty}
-            onChange={(e) => updateField("specialty", e.target.value)}
+            type="number"
+            value={experienceYears}
+            onChange={(e) => setExperienceYears(e.target.value)}
           />
         </>
       )}
 
+      {/* CAMPOS COMUNES */}
+      <label>Mensaje</label>
+      <textarea value={intent} onChange={(e) => setIntent(e.target.value)} />
+
+      <label>Obra social</label>
       <input
-        placeholder="Disponibilidad (ej: lun-mañana)"
-        onChange={(e) => updateField("schedule", e.target.value.split(","))}
-        required
+        type="text"
+        value={obraSocial}
+        onChange={(e) => setObraSocial(e.target.value)}
       />
 
+      <label>Teléfono</label>
       <input
-        placeholder="Modalidad (domicilio / institucion / ambos)"
-        value={form.modalidad}
-        onChange={(e) => updateField("modalidad", e.target.value)}
+        type="text"
+        value={celular}
+        onChange={(e) => setCelular(e.target.value)}
       />
 
+      <label>Email</label>
       <input
-        placeholder="Celular"
-        value={form.celular}
-        onChange={(e) => updateField("celular", e.target.value)}
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
       />
 
-      <textarea
-        placeholder="Mensaje"
-        value={form.intent}
-        onChange={(e) => updateField("intent", e.target.value)}
-      />
-
-      <br />
-
-      <button disabled={loading}>
-        {loading ? "Guardando..." : "Guardar y continuar"}
-      </button>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <button type="submit">Guardar publicación</button>
     </form>
   );
 }
