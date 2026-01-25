@@ -2,13 +2,19 @@ import { supabase } from "../lib/supabase";
 
 /**
  * Crea un post en estado draft (inactive)
- * Se usa antes del pago
- * Solo usuarios autenticados
+ * Se usa al guardar el formulario
  */
 export async function createPostDraft(postData) {
-  const user = supabase.auth.user();
-  if (!user) {
-    return { data: null, error: { message: "Usuario no autenticado" } };
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      data: null,
+      error: { message: "Usuario no autenticado" },
+    };
   }
 
   const {
@@ -22,6 +28,7 @@ export async function createPostDraft(postData) {
     specialty,
     modalidad,
     celular,
+    email,
   } = postData;
 
   const { data, error } = await supabase
@@ -37,8 +44,9 @@ export async function createPostDraft(postData) {
       specialty: specialty ?? null,
       modalidad: modalidad ?? null,
       celular: celular ?? null,
-      user_id: user.id, // <-- clave para policy RLS
-      active: false,    // <-- inactivo hasta pago
+      email: user.email,
+      user_id: user.id,
+      active: false,
       expires_at: null,
     })
     .select()
@@ -54,9 +62,12 @@ export async function createPostDraft(postData) {
 
 /**
  * Activa un post luego del pago
- * Setea expires_at = now + 30 días
  */
 export async function activatePost(postId) {
+  if (!postId) {
+    throw new Error("postId requerido para activar post");
+  }
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
