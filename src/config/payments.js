@@ -1,1 +1,1 @@
-export const CAFECITO_URL = "https://cafecito.app/miatappar"
+export const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY;

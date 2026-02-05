@@ -7,6 +7,8 @@ import CreatePost from "./pages/CreatePost";
 import Matches from "./pages/Matches";
 import AuthCallback from "./pages/AuthCallback";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ViewPost from "./pages/ViewPost";
+import EditPost from "./pages/EditPost";
 
 function ProtectedRoute({ children }) {
   const { user, profile, loading } = useAuth();
@@ -71,6 +73,30 @@ export default function AppRouter() {
           }
         />
 
+        <Route
+          path="/view-post"
+          element={
+            <ProtectedRoute>
+              <ViewPost />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-post"
+          element={
+            <ProtectedRoute>
+              <ViewPost />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit-post"
+          element={
+            <ProtectedRoute>
+              <EditPost />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/home" replace />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
       </Routes>

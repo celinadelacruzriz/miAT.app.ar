@@ -19,7 +19,7 @@ export default function PaymentSuccess() {
         if (error) {
           setError("No se pudo activar la publicación.");
         } else {
-          navigate("/create-post", { replace: true });
+          navigate("/view-post", { replace: true });
         }
       } catch (err) {
         if (err instanceof Error) {
