@@ -9,16 +9,14 @@ import AuthCallback from "./pages/AuthCallback";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ViewPost from "./pages/ViewPost";
 import EditPost from "./pages/EditPost";
+import MainLayout from "./layouts/MainLayout";
 
 function ProtectedRoute({ children }) {
   const { user, profile, loading } = useAuth();
 
   if (loading) return <div>Cargando...</div>;
-
   if (!user) return <Navigate to="/login" replace />;
-
   if (!profile) return <div>Cargando perfil...</div>;
-
   if (profile.role === null) return <Navigate to="/select-role" replace />;
 
   return children;
@@ -30,6 +28,7 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Rutas públicas */}
         <Route
           path="/login"
           element={!user ? <Login /> : <Navigate to="/home" replace />}
@@ -45,60 +44,28 @@ export default function AppRouter() {
             )
           }
         />
+
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/create-post"
-          element={
-            <ProtectedRoute>
-              <CreatePost />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/matches"
-          element={
-            <ProtectedRoute>
-              <Matches />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/view-post"
-          element={
-            <ProtectedRoute>
-              <ViewPost />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-post"
-          element={
-            <ProtectedRoute>
-              <ViewPost />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/edit-post"
-          element={
-            <ProtectedRoute>
-              <EditPost />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/home" replace />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
+
+        {/* Rutas protegidas con layout */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/home" element={<Home />} />
+          <Route path="/create-post" element={<CreatePost />} />
+          <Route path="/matches" element={<Matches />} />
+          <Route path="/view-post" element={<ViewPost />} />
+          <Route path="/my-post" element={<ViewPost />} />
+          <Route path="/edit-post" element={<EditPost />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
   );
