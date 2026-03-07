@@ -1,13 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { logout } from "../services/auth";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../context/useAuthContext";
 import { getMyPost } from "../services/posts.service";
 
+const ROLE_LABELS = {
+  at: "Acompañante Terapéutico",
+  patient: "Padre / Madre / Tutor",
+};
+
 export default function Home() {
-  const { profile } = useAuth();
+  const { user, activeProfile, loading } = useAuth();
   const navigate = useNavigate();
-  const [post, setPost] = useState("");
+  const [post, setPost] = useState(null);
 
   useEffect(() => {
     async function loadPost() {
@@ -17,8 +22,7 @@ export default function Home() {
     loadPost();
   }, []);
 
-  // ⛔ defensa obligatoria
-  if (!profile) {
+  if (loading) {
     return <div>Cargando...</div>;
   }
 
@@ -27,11 +31,11 @@ export default function Home() {
       <h2>MiAT</h2>
 
       <p>
-        Bienvenida/o <strong>{profile.name}</strong>
+        Bienvenida/o <strong>{activeProfile?.display_name ?? user?.email}</strong>
       </p>
 
       <p>
-        Rol: <strong>{profile.role}</strong>
+        Rol activo: <strong>{ROLE_LABELS[activeProfile?.type] ?? "Sin rol seleccionado"}</strong>
       </p>
 
       <hr />
@@ -44,6 +48,7 @@ export default function Home() {
           </button>
         </div>
       )}
+      
       <button onClick={() => navigate("/create-post")}>
         ➕ Crear publicación
       </button>

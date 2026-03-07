@@ -1,21 +1,29 @@
-import { CAFECITO_URL } from "../config/payments";
+// src/services/payment.service.js
 import { supabase } from "../lib/supabase";
 
 /**
- * Crea una preferencia de pago en MercadoPago via Edge Function
+ * Crea una preferencia de pago en MercadoPago vía Edge Function
+ * Retorna preferenceId e init_point
  */
-export async function createPreference(
+export async function createMercadoPagoPreference(
   postId,
   title = "Publicación MiatApp",
   price = 1000,
 ) {
+  if (!postId) {
+    throw new Error("postId es requerido");
+  }
+
   const { data, error } = await supabase.functions.invoke("create-preference", {
     body: { postId, title, price },
+    headers: {
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY?.trim(),
+    },
   });
 
   if (error) {
-    console.error("Error creating preference:", error);
-    return { preferenceId: null, error };
+    console.error("Error creando preferencia MercadoPago:", error);
+    return { preferenceId: null, init_point: null, error };
   }
 
   return {
@@ -23,16 +31,4 @@ export async function createPreference(
     init_point: data.init_point,
     error: null,
   };
-}
-
-/**
- * Genera la URL de pago para Cafecito
- * Se usa tanto para pagar como para renovar
- */
-export function getCafecitoPaymentUrl(postId) {
-  if (!postId) {
-    throw new Error("postId requerido para generar link de pago");
-  }
-
-  return `${CAFECITO_URL}?ref=post_${postId}`;
 }

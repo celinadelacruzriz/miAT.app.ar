@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./hooks/useAuth";
+import { useAuth } from "./context/useAuthContext";
 import Login from "./pages/Login";
 import SelectRole from "./pages/SelectRole";
 import Home from "./pages/Home";
@@ -12,18 +12,38 @@ import EditPost from "./pages/EditPost";
 import MainLayout from "./layouts/MainLayout";
 
 function ProtectedRoute({ children }) {
-  const { user, profile, loading } = useAuth();
+  const { user, activeProfile, loading, profiles } = useAuth();
 
-  if (loading) return <div>Cargando...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!profile) return <div>Cargando perfil...</div>;
-  if (profile.role === null) return <Navigate to="/select-role" replace />;
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si el usuario está logueado pero no tiene NINGÚN perfil,
+  // lo mandamos a crear el primero.
+  if (profiles.length === 0) {
+    return <Navigate to="/select-role" replace />;
+  }
+  
+  // Si tiene perfiles pero por alguna razón no hay uno activo,
+  // podría redirigirse a una página para seleccionar perfil.
+  // Por ahora, lo mandamos a /select-role también.
+  if (!activeProfile) {
+    return <Navigate to="/select-role" replace />;
+  }
 
   return children;
 }
 
 export default function AppRouter() {
-  const { user, profile } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Cargando app...</div>;
+  }
 
   return (
     <BrowserRouter>
@@ -36,13 +56,7 @@ export default function AppRouter() {
 
         <Route
           path="/select-role"
-          element={
-            user && profile?.role === null ? (
-              <SelectRole />
-            ) : (
-              <Navigate to="/home" replace />
-            )
-          }
+          element={user ? <SelectRole /> : <Navigate to="/login" replace />}
         />
 
         <Route path="/auth/callback" element={<AuthCallback />} />
@@ -65,7 +79,10 @@ export default function AppRouter() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/home" : "/login"} replace />}
+        />
       </Routes>
     </BrowserRouter>
   );

@@ -1,84 +1,101 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+
+async function fetchProfiles(user) {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching profiles:", error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error("Exception in fetchProfiles:", err);
+    return [];
+  }
+}
 
 export function useAuth() {
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profiles, setProfiles] = useState([]);
+  const [activeProfile, setActiveProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadSession() {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
-
-      if (!mounted) return;
-
-      if (error || !session?.user) {
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
+  const handleAuthChange = useCallback(async (session) => {
+    if (session?.user) {
+      const fetchedProfiles = await fetchProfiles(session.user);
       setUser(session.user);
+      setProfiles(fetchedProfiles);
 
-      const { data: profileData, error: profileError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      // Intentamos recuperar el perfil activo del localStorage o usamos el primero
+      const savedProfileId = localStorage.getItem("activeProfileId");
+      const foundProfile = fetchedProfiles.find((p) => p.id === savedProfileId);
 
-      if (profileError) {
-        console.error("Error cargando perfil:", profileError);
-        setProfile(null);
+      if (foundProfile) {
+        setActiveProfile(foundProfile);
+      } else if (fetchedProfiles.length > 0) {
+        setActiveProfile(fetchedProfiles[0]);
       } else {
-        setProfile(profileData);
+        setActiveProfile(null);
       }
-
-      setLoading(false);
+    } else {
+      setUser(null);
+      setProfiles([]);
+      setActiveProfile(null);
+      localStorage.removeItem("activeProfileId");
     }
+    setLoading(false);
+  }, []);
 
-    loadSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-
-      if (!session?.user) {
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      setUser(session.user);
-
-      supabase
-        .from("users")
-        .select("*")
-        .eq("id", session.user.id)
-        .single()
-        .then(({ data }) => {
-          setProfile(data ?? null);
-          setLoading(false);
-        });
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthChange(session);
     });
 
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        handleAuthChange(session);
+      },
+    );
+
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      if (listener?.subscription) {
+        listener.subscription.unsubscribe();
+      }
     };
-  }, []);
+  }, [handleAuthChange]);
+
+  const refresh = useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session) {
+      await handleAuthChange(session);
+    }
+  }, [handleAuthChange]);
+
+  const switchProfile = useCallback(
+    (profileId) => {
+      const profileToActivate = profiles.find((p) => p.id === profileId);
+      if (profileToActivate) {
+        setActiveProfile(profileToActivate);
+        localStorage.setItem("activeProfileId", profileId);
+      }
+    },
+    [profiles],
+  );
 
   return {
     user,
-    profile,
+    profiles,
+    activeProfile,
     loading,
     isAuthenticated: !!user,
+    switchProfile,
+    refresh,
   };
 }

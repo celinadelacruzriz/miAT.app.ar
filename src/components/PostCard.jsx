@@ -1,10 +1,7 @@
-import { CAFECITO_URL } from "../config/payments";
-
 export default function PostCard({ post }) {
   if (!post) return null;
 
-  const isExpired =
-    post.expires_at && new Date(post.expires_at) < new Date();
+  //const isExpired = post.expires_at && new Date(post.expires_at) < new Date();
 
   return (
     <div
@@ -16,9 +13,7 @@ export default function PostCard({ post }) {
       }}
     >
       <h3>
-        {post.role === "at"
-          ? "Acompañante Terapéutico"
-          : "Búsqueda de AT"}
+        {post.role === "at" ? "Acompañante Terapéutico" : "Búsqueda de AT"}
       </h3>
 
       {/* ZONA */}
@@ -36,16 +31,14 @@ export default function PostCard({ post }) {
       {/* DIAGNÓSTICO */}
       {Array.isArray(post.diagnosis) && post.diagnosis.length > 0 && (
         <p>
-          <strong>Diagnóstico:</strong>{" "}
-          {post.diagnosis.join(", ")}
+          <strong>Diagnóstico:</strong> {post.diagnosis.join(", ")}
         </p>
       )}
 
       {/* EXPERIENCIA */}
       {post.experience_years && (
         <p>
-          <strong>Experiencia:</strong>{" "}
-          {post.experience_years} años
+          <strong>Experiencia:</strong> {post.experience_years} años
         </p>
       )}
 
@@ -59,8 +52,7 @@ export default function PostCard({ post }) {
       {/* DISPONIBILIDAD */}
       {Array.isArray(post.schedule) && post.schedule.length > 0 && (
         <p>
-          <strong>Disponibilidad:</strong>{" "}
-          {post.schedule.join(", ")}
+          <strong>Disponibilidad:</strong> {post.schedule.join(", ")}
         </p>
       )}
 
@@ -73,8 +65,7 @@ export default function PostCard({ post }) {
 
       {/* ESTADO */}
       <p>
-        <strong>Estado:</strong>{" "}
-        {post.active ? "Activo" : "Pendiente de pago"}
+        <strong>Estado:</strong> {post.active ? "Activo" : "Pendiente de pago"}
       </p>
 
       {/* VENCIMIENTO */}
@@ -85,16 +76,8 @@ export default function PostCard({ post }) {
         </p>
       )}
 
-      {/* RENOVAR / CAFECITO */}
-      {(!post.active || isExpired) && (
-        <a
-          href={`${CAFECITO_URL}?ref=post_${post.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <button>Renovar publicación (30 días)</button>
-        </a>
-      )}
+      {/* RENOVAR PAGO */}
+      {/*  ACA DEBE IR LA LOGICA DE MERCADOPAGO */}
     </div>
   );
 }
